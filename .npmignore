@@ -9,3 +9,11 @@ jest.config.js
 node_modules/
 
 .vscode/
+.editorconfig
+.markdownlint.json
+.pre-commit-config.yaml
+.pre-commit-scripts/
+.prettierrc
+.prettierignore
+
+CHANGELOG.md
