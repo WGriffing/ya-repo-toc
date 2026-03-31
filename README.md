@@ -32,9 +32,9 @@ Generated Table of Contents:
 
 ```markdown
 <!---TOC-START--->
-* [TestFile3](./TestFile3.md)
-* **test-files**
-  * [Test File 1 Title](./test-files/TestFile1.md)
+- [TestFile3](./TestFile3.md)
+- test-files
+  - [Test File 1 Title](./test-files/TestFile1.md)
 
 <!---TOC-END--->
 ```

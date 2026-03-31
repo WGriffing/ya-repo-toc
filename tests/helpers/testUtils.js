@@ -10,17 +10,17 @@ function assertTocContent(content, options = {}) {
     options;
 
   // Check that the TOC contains expected files
-  expect(content).toContain(`* [TestFile3](./TestFile3.md)`);
+  expect(content).toContain(`- [TestFile3](./TestFile3.md)`);
 
   if (shouldContainTestFiles) {
-    expect(content).toContain(`* **test-files**`);
+    expect(content).toContain(`- test-files`);
     expect(content).toContain(
-      `* [Test File 1 Title](./test-files/TestFile1.md)`
+      `- [Test File 1 Title](./test-files/TestFile1.md)`
     );
   }
 
   if (shouldContainTextFile) {
-    expect(content).toContain(`* [TextFile](./test-files/TextFile.txt)`);
+    expect(content).toContain(`- [TextFile](./test-files/TextFile.txt)`);
   }
 
   // Ensure it doesn't contain test artifacts from other tests

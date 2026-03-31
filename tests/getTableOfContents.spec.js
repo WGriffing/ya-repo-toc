@@ -68,12 +68,12 @@ describe("Git tracking integration", () => {
 
     try {
       // With git tracking (default), untracked file should NOT appear
-      const tocGit = getTableOfContents({ dirPath, extensions: [".md"] });
+      const tocGit = getTableOfContents({ dirPath, extensions: [".md"], excludedDirs: parallelTestDirs });
       expect(tocGit).not.toContain("untracked-test.md");
       expect(tocGit).toContain("TestFile3.md");
 
       // With filesystem fallback, untracked file SHOULD appear
-      const tocFs = getTableOfContents({ dirPath, extensions: [".md"], useGitTracking: false });
+      const tocFs = getTableOfContents({ dirPath, extensions: [".md"], excludedDirs: parallelTestDirs, useGitTracking: false });
       expect(tocFs).toContain("untracked-test.md");
       expect(tocFs).toContain("TestFile3.md");
     } finally {

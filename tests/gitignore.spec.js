@@ -93,7 +93,7 @@ temp*.md
     // Should include non-gitignored files
     expect(toc).toContain("README.md");
     expect(toc).toContain("app.js");
-    expect(toc).toContain("**src**");
+    expect(toc).toContain("- src");
 
     // Should exclude gitignored files and directories
     expect(toc).not.toContain("node_modules");
@@ -605,11 +605,11 @@ describe("Prune empty", () => {
       pruneEmpty: false,
     });
 
-    expect(toc).toContain("**docs**");
-    expect(toc).toContain("**assets**");
-    expect(toc).toContain("**empty**");
-    expect(toc).toContain("**nested**");
-    expect(toc).toContain("**deep**");
+    expect(toc).toContain("- docs");
+    expect(toc).toContain("- assets");
+    expect(toc).toContain("- empty");
+    expect(toc).toContain("- nested");
+    expect(toc).toContain("- deep");
   });
 
   test("with prune, empty directories are removed", () => {
@@ -620,15 +620,15 @@ describe("Prune empty", () => {
     });
 
     // Directories with .md files (or descendants with .md) are kept
-    expect(toc).toContain("**docs**");
+    expect(toc).toContain("- docs");
     expect(toc).toContain("guide.md");
-    expect(toc).toContain("**deep-docs**");
-    expect(toc).toContain("**section**");
+    expect(toc).toContain("- deep-docs");
+    expect(toc).toContain("- section");
     expect(toc).toContain("page.md");
 
     // Directories with no .md files anywhere are pruned
-    expect(toc).not.toContain("**assets**");
-    expect(toc).not.toContain("**empty**");
-    expect(toc).not.toContain("**nested**");
+    expect(toc).not.toContain("- assets");
+    expect(toc).not.toContain("- empty");
+    expect(toc).not.toContain("- nested");
   });
 });
