@@ -1,0 +1,32 @@
+---
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+  # Markdown: markdownlint
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.21.0
+    hooks:
+      - id: markdownlint-cli2
+  # JS/JSON/YAML: Prettier
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: v3.8.1
+    hooks:
+      - id: prettier
+        additional_dependencies:
+          - prettier@3.8.1
+          - prettier-plugin-yaml
+  # JS: enforce pinned package versions (no ^ or ~)
+  - repo: local
+    hooks:
+      - id: check-pinned-versions
+        name: check-pinned-versions
+        entry: node .pre-commit-scripts/check-pinned-versions.js
+        language: system
+        files: package\.json$
+        types: [json]

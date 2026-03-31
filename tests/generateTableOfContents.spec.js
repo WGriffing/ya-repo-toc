@@ -1,7 +1,10 @@
 const fs = require("fs");
 const path = require("path");
 const { generateTableOfContent, getTableOfContents } = require("../lib");
-const { cleanupTestArtifacts, assertTocContent } = require("./helpers/testUtils");
+const { assertTocContent } = require("./helpers/testUtils");
+
+// Directories created by other test suites that may exist in mocks/ during parallel runs
+const parallelTestDirs = ["gitignore-test", "recurse-gitignore-test", "prune-empty-test", "pattern-coverage-test", "pattern-nested-test", "special-chars-test"];
 
 describe("generateTableOfContents", () => {
   test("should generate TOC on marker less markdown file", () => {
@@ -9,10 +12,8 @@ describe("generateTableOfContents", () => {
     const fileName = "markdownWithoutMarker.md";
     const filePath = path.join(dirPath, fileName);
 
-    cleanupTestArtifacts(dirPath);
-
     fs.writeFileSync(filePath, "## Table of contents");
-    generateTableOfContent({ dirPath, filePath });
+    generateTableOfContent({ dirPath, filePath, excludedDirs: parallelTestDirs, useGitTracking: false });
 
     const fileContent = fs.readFileSync(filePath, "utf8");
     assertTocContent(fileContent);
@@ -29,13 +30,11 @@ describe("generateTableOfContents", () => {
     const fileName = "markdownWithMarker.md";
     const filePath = path.join(dirPath, fileName);
 
-    cleanupTestArtifacts(dirPath);
-
     fs.writeFileSync(
       filePath,
       "## Table of contents\n\n\n<!---TOC-START--->\n<!---TOC-END--->\n\n"
     );
-    generateTableOfContent({ dirPath, filePath });
+    generateTableOfContent({ dirPath, filePath, excludedDirs: parallelTestDirs, useGitTracking: false });
 
     const fileContent = fs.readFileSync(filePath, "utf8");
     assertTocContent(fileContent);
@@ -61,17 +60,20 @@ describe("generateTableOfContents", () => {
     fs.writeFileSync(tempFile, "# Temporary File\n\nThis should be excluded.");
 
     try {
-      // Generate TOC without exclusions
-      const tocWithoutExclusions = getTableOfContents({ 
-        dirPath, 
-        extensions: [".md"] 
-      });
-      
-      // Generate TOC with exclusions
-      const tocWithExclusions = getTableOfContents({ 
-        dirPath, 
+      // Generate TOC without exclusions (exclude parallel test dirs to avoid race conditions)
+      const tocWithoutExclusions = getTableOfContents({
+        dirPath,
         extensions: [".md"],
-        excludedDirs: ["temp-exclude"]
+        excludedDirs: parallelTestDirs,
+        useGitTracking: false,
+      });
+
+      // Generate TOC with exclusions
+      const tocWithExclusions = getTableOfContents({
+        dirPath,
+        extensions: [".md"],
+        excludedDirs: ["temp-exclude", ...parallelTestDirs],
+        useGitTracking: false,
       });
 
       // The version with exclusions should not contain the temp directory
@@ -98,10 +100,11 @@ describe("generateTableOfContents", () => {
     const dirPath = path.join(__dirname, "mocks");
     
     // Test excluding the existing test-files directory
-    const tocWithExclusions = getTableOfContents({ 
-      dirPath, 
+    const tocWithExclusions = getTableOfContents({
+      dirPath,
       extensions: [".md"],
-      excludedDirs: ["test-files"]
+      excludedDirs: ["test-files", ...parallelTestDirs],
+      useGitTracking: false,
     });
 
     // Should not contain the excluded directory

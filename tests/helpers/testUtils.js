@@ -1,17 +1,3 @@
-const fs = require("fs");
-const path = require("path");
-
-/**
- * Cleans up test artifacts that might have been left by other tests
- * @param {string} mocksDir - Path to the mocks directory
- */
-function cleanupTestArtifacts(mocksDir) {
-  const gitignoreTestDir = path.join(mocksDir, "gitignore-test");
-  if (fs.existsSync(gitignoreTestDir)) {
-    fs.rmSync(gitignoreTestDir, { recursive: true, force: true });
-  }
-}
-
 /**
  * Common assertions for TOC content
  * @param {string} content - The content to test
@@ -24,17 +10,17 @@ function assertTocContent(content, options = {}) {
     options;
 
   // Check that the TOC contains expected files
-  expect(content).toContain(`* [TestFile3](./TestFile3.md)`);
+  expect(content).toContain(`- [TestFile3](./TestFile3.md)`);
 
   if (shouldContainTestFiles) {
-    expect(content).toContain(`* **test-files**`);
+    expect(content).toContain(`- test-files`);
     expect(content).toContain(
-      `* [Test File 1 Title](./test-files/TestFile1.md)`
+      `- [Test File 1 Title](./test-files/TestFile1.md)`
     );
   }
 
   if (shouldContainTextFile) {
-    expect(content).toContain(`* [TextFile](./test-files/TextFile.txt)`);
+    expect(content).toContain(`- [TextFile](./test-files/TextFile.txt)`);
   }
 
   // Ensure it doesn't contain test artifacts from other tests
@@ -42,6 +28,5 @@ function assertTocContent(content, options = {}) {
 }
 
 module.exports = {
-  cleanupTestArtifacts,
   assertTocContent,
 };
