@@ -1,17 +1,3 @@
-const fs = require("fs");
-const path = require("path");
-
-/**
- * Cleans up test artifacts that might have been left by other tests
- * @param {string} mocksDir - Path to the mocks directory
- */
-function cleanupTestArtifacts(mocksDir) {
-  const gitignoreTestDir = path.join(mocksDir, "gitignore-test");
-  if (fs.existsSync(gitignoreTestDir)) {
-    fs.rmSync(gitignoreTestDir, { recursive: true, force: true });
-  }
-}
-
 /**
  * Common assertions for TOC content
  * @param {string} content - The content to test
@@ -42,6 +28,5 @@ function assertTocContent(content, options = {}) {
 }
 
 module.exports = {
-  cleanupTestArtifacts,
   assertTocContent,
 };

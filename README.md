@@ -1,25 +1,24 @@
-# repo-toc
+# ya-repo-toc
 
-[![npm version](https://badge.fury.io/js/repo-toc.svg)](https://badge.fury.io/js/repo-toc)  
-Easily generate a markdown Table of Contents (TOC) for your GitHub repository. Automatically respects `.gitignore` files and excludes ignored files and directories from the TOC.
+[![npm version](https://badge.fury.io/js/ya-repo-toc.svg)](https://badge.fury.io/js/ya-repo-toc)
+
+Generate a markdown Table of Contents (TOC) for your GitHub repository. Uses `git ls-files` in git repositories to only include tracked files, and falls back to filesystem traversal with `.gitignore` support elsewhere.
+
+> **Fork notice**: This is a fork of [repo-toc](https://github.com/kmtusher97/repo-toc) by [@kmtusher97](https://github.com/kmtusher97), with added support for git-native file discovery, nested `.gitignore` handling, and empty directory pruning.
 
 ## Installation
 
-Install the package using npm:
-
 ```bash
-npm install -g repo-toc
+npm install -g ya-repo-toc
 ```
+
+This installs the `ya-repo-toc` CLI command.
 
 ## Usage
 
-`repo-toc` provides a simple way to generate a markdown Table of Contents for all files in your GitHub repository.
-
 ### Example
 
-#### Input:
-
-Your directory structure:
+Directory structure:
 
 ```
 .
@@ -29,288 +28,222 @@ Your directory structure:
 │   └── TextFile.txt
 ```
 
-#### Output:
-The generated Table of Contents:
+Generated Table of Contents:
 
 ```markdown
-    <!---TOC-START--->
-    * [TestFile3](./TestFile3.md)
-    * **test-files**
-      * [Test File 1 Title](./test-files/TestFile1.md)
+<!---TOC-START--->
+* [TestFile3](./TestFile3.md)
+* **test-files**
+  * [Test File 1 Title](./test-files/TestFile1.md)
 
-    <!---TOC-END--->
+<!---TOC-END--->
 ```
 
 ### CLI
-```bash
-repo-toc [options]
+
+```
+ya-repo-toc [options]
 
 Options:
-      --version  Show version number                                   [boolean]
-  -d, --dir      Directory path to generate TOC for
-                [string] [default: process.cwd()]
-  -e, --ext      File extensions to include (comma-separated)
-                                                       [string] [default: ".md"]
-  -o, --output   File path to save the TOC     [string] [default: "./README.md"]
-  -x, --exclude  Directories to exclude (comma-separated)              [string]
-  -h, --help     Show help                                             [boolean]
-
-**Important**: Files and directories listed in `.gitignore` files are automatically excluded from the TOC generation. This includes:
-- Files and directories specified in `.gitignore` at any level in your repository
-- Common ignored patterns like `node_modules/`, `dist/`, `build/`, `.git/`, etc.
-- You can still use the `--exclude` option to exclude additional directories beyond what's in `.gitignore`
+      --version           Show version number                          [boolean]
+  -d, --dir               Directory path to generate TOC for
+                                                  [string] [default: cwd]
+  -e, --ext               File extensions to include (comma-separated)
+                                                  [string] [default: ".md"]
+  -o, --output            File path to save the TOC
+                                                  [string] [default: "./README.md"]
+  -x, --exclude           Directories to exclude (comma-separated)     [string]
+  -r, --recurse-gitignore Respect nested .gitignore files in subdirectories
+                                                  [boolean] [default: false]
+  -p, --prune-empty       Prune directories that contain no matching files
+                                                  [boolean] [default: false]
+  -h, --help              Show help                                    [boolean]
 ```
 
+### Git-Native File Discovery
+
+When run inside a git repository, `ya-repo-toc` uses `git ls-files` to discover files:
+
+- **Only tracked files appear** -- untracked, ignored, and unstaged files are automatically excluded
+- **No `.gitignore` parsing needed** -- git handles ignore rules natively
+- **Faster and more accurate** -- no filesystem walk or pattern matching required
+
+When run outside a git repository, it falls back to filesystem traversal and respects the root `.gitignore` file automatically.
+
+### Options
+
+#### `--recurse-gitignore` / `-r`
+
+By default (outside a git repo), only the root `.gitignore` is respected. Enable this flag to also respect nested `.gitignore` files in subdirectories.
+
+This flag has no effect in a git repository (git handles nested `.gitignore` files natively). A warning is displayed if used in a git repo.
+
+#### `--prune-empty` / `-p`
+
+By default, all directories that contain tracked files are shown in the TOC, even if none match your extension filter. Enable this flag to hide directories that contain no files matching `--ext`.
+
+Example: `ya-repo-toc --ext .md --prune-empty` omits directories that contain only `.js` or `.txt` files.
+
+#### `--exclude` / `-x`
+
+Exclude specific directories by name (comma-separated), in addition to `.gitignore` rules or git tracking.
+
+```bash
+ya-repo-toc --exclude node_modules,dist,build
 ```
-repo-toc
-```
-
-### .gitignore Support
-
-`repo-toc` automatically respects `.gitignore` files throughout your repository:
-
-- **Automatic exclusion**: Files and directories listed in `.gitignore` are automatically excluded from TOC generation
-- **Multi-level support**: Respects `.gitignore` files at any directory level in your repository
-- **Common patterns**: Automatically excludes common ignored patterns like `node_modules/`, `dist/`, `build/`, `.git/`, etc.
-- **Additional exclusions**: You can still use the `--exclude` option to exclude additional directories beyond what's in `.gitignore`
-
-This ensures your TOC only includes files that are actually tracked in your repository, keeping it clean and relevant.
 
 ### Usage Examples
 
-Generate TOC excluding specific directories:
 ```bash
-repo-toc --exclude node_modules,dist,build
-```
+# Default: generate TOC of .md files
+ya-repo-toc
 
-Generate TOC for only JavaScript files, excluding test directories:
-```bash
-repo-toc --ext .js,.ts --exclude tests,__tests__,spec
-```
+# Prune directories with no .md files
+ya-repo-toc --prune-empty
 
-**Note**: The tool automatically respects `.gitignore` files and excludes any files or directories listed there, in addition to your manual exclusions. This ensures your TOC only includes files that are actually tracked in your repository.
+# TOC for JavaScript/TypeScript files only
+ya-repo-toc --ext .js,.ts --prune-empty
+
+# Nested .gitignore support (non-git directories)
+ya-repo-toc --recurse-gitignore --prune-empty
+
+# Custom output file
+ya-repo-toc -o docs/TOC.md --prune-empty
+```
 
 ### Use with Pre-commit Hooks
 
-You can integrate `repo-toc` with pre-commit hooks to automatically generate and update the TOC before each commit. This ensures your TOC is always up-to-date.
-
 #### Setup
 
-1. **Install pre-commit** (if not already installed):
+1. Install pre-commit:
 ```bash
 pip install pre-commit
 ```
 
-2. **Add repo-toc to your package.json**:
-```json
-{
-  "devDependencies": {
-    "repo-toc": "^1.2.0"
-  },
-  "scripts": {
-    "generate-toc": "./.github/hooks/generate-toc.sh",
-    "install-hooks": "pre-commit install"
-  }
-}
-```
-
-3. **Create a pre-commit hook script** (`.github/hooks/generate-toc.sh`):
+2. Create `.github/hooks/generate-toc.sh`:
 ```bash
 #!/bin/bash
 set -e
 
-echo "🔄 Generating Table of Contents..."
-
-# Check if Node.js and npm are available
-if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
-    echo "❌ Node.js/npm is not installed. Please install Node.js to generate TOC."
+if ! command -v node &> /dev/null; then
+    echo "Node.js is not installed."
     exit 1
 fi
 
-# Install repo-toc if not already installed
-if ! npm list -g repo-toc &> /dev/null; then
-    echo "📦 Installing repo-toc globally..."
-    npm install -g repo-toc
+if ! command -v ya-repo-toc &> /dev/null; then
+    npm install -g ya-repo-toc
 fi
 
-# Generate TOC for README.md
 if [ -f "README.md" ]; then
-    echo "📝 Updating Table of Contents in README.md..."
-    
-    # Create a backup
     cp README.md README.md.backup
-    
-    # Generate TOC with repo-toc
-    repo-toc -i README.md
-    
-    # Check if the file was modified
+    ya-repo-toc -o README.md --prune-empty
     if ! cmp -s README.md README.md.backup; then
-        echo "✅ Table of Contents updated successfully!"
-        # Add the updated file to git staging area
         git add README.md
-    else
-        echo "ℹ️  Table of Contents is already up to date."
     fi
-    
-    # Clean up backup
-    rm README.md.backup
-else
-    echo "❌ README.md not found in current directory"
-    exit 1
+    rm -f README.md.backup
 fi
-
-echo "🎉 TOC generation completed!"
 ```
 
-4. **Configure pre-commit** (`.pre-commit-config.yaml`):
+3. Configure `.pre-commit-config.yaml`:
 ```yaml
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
-    hooks:
-      - id: trailing-whitespace
-      - id: end-of-file-fixer
-      - id: check-yaml
-      - id: check-markdown
-        args: [--fix]
-
   - repo: local
     hooks:
       - id: generate-toc
         name: Generate Table of Contents
         entry: ./.github/hooks/generate-toc.sh
         language: script
-        files: '^README\.md$'
+        files: '\.md$'
         pass_filenames: false
         stages: [commit]
-
-  - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.37.0
-    hooks:
-      - id: markdownlint
-        args: [--fix]
-        files: \.md$
 ```
 
-5. **Install the pre-commit hooks**:
+4. Install hooks:
 ```bash
-npm run install-hooks
-# or
 pre-commit install
 ```
 
-#### Benefits
+### Use with GitHub Actions
 
-- **Automatic TOC updates**: TOC is generated/updated automatically before each commit
-- **Consistent formatting**: Ensures TOC follows the same format across all commits
-- **No manual intervention**: Developers don't need to remember to update the TOC
-- **Integration with other hooks**: Works seamlessly with markdown linting and other pre-commit hooks
-
-### Use with Github actions
-It will auto generate the TOC after you commit things on Github. You use this github action
 ```yml
 name: Generate TOC
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   toc:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
       with:
-        node-version: '18'
-
-    - name: Install markdown-toc
-      run: npm install -g repo-toc
-
-    - name: Generate TOC
-      run: repo-toc -i README.md
-
-    - name: Commit and Push Changes
-      run: |
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        node-version: '20'
+    - run: npm install -g ya-repo-toc
+    - run: ya-repo-toc -o README.md --prune-empty
+    - run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
         git add README.md
-        git commit -m "Update TOC"
+        git commit -m "Update TOC" || true
         git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-### Code Example
-
-To generate the TOC:
+### Programmatic API
 
 ```javascript
 const path = require('path');
+const { generateTableOfContent, getTableOfContents } = require('ya-repo-toc');
 
-const dirPath = path.join(__dirname, "mocks");
-const filePath = path.join(__dirname, "README.md");
-
-fs.writeFileSync(filePath, "## Table of contents");
-generateTableOfContent({ dirPath, filePath });
-
-// Generate TOC excluding specific directories
-// Note: .gitignore files are automatically respected
+// Generate TOC and write to file
 generateTableOfContent({
-  dirPath: __dirname,
-  filePath: path.join(__dirname, "README.md"),
-  excludedDirs: ["node_modules", "dist", "build"]
+  dirPath: path.join(__dirname, 'my-project'),
+  filePath: path.join(__dirname, 'README.md'),
+  pruneEmpty: true,
 });
 
-// Call the function to generate the TOC
-generateTableOfContent();
-// It will update the README.md file with the Table of Contents
+// Get TOC as a string
+const toc = getTableOfContents({
+  dirPath: __dirname,
+  extensions: ['.md'],
+  pruneEmpty: true,
+});
 ```
-
-### API
 
 #### `generateTableOfContent(options)`
 
-Generates a Table of Contents for the specified directory.
+Generates a Table of Contents and writes it to a file.
 
-##### Parameters:
-- **`options`** (object): Configuration options for generating the TOC.  
-  - **`dirPath`** (string): The directory path to scan for files.  
-    - Default: `process.cwd()` (the current working directory).  
-  - **`extensions`** (array of strings): An array of file extensions to include in the TOC.  
-    - Default: `[".md"]`.  
-  - **`filePath`** (string): The path where the generated TOC will be written.  
-    - Default: `path.join(__dirname, "README.md")`.
-  - **`excludedDirs`** (array of strings): An array of directory names to exclude from the TOC.  
-    - Default: `[]`. 
-    - **Automatic exclusions**: Directories starting with `.` and files/directories listed in `.gitignore` files are automatically excluded, regardless of this parameter.
-    - This parameter allows you to exclude additional directories beyond what's already ignored by `.gitignore`.
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `dirPath` | string | `process.cwd()` | Directory to scan |
+| `extensions` | string[] | `[".md"]` | File extensions to include |
+| `filePath` | string | `"./README.md"` | Output file path |
+| `excludedDirs` | string[] | `[]` | Directories to exclude |
+| `recurseGitignore` | boolean | `false` | Respect nested `.gitignore` files (non-git only) |
+| `pruneEmpty` | boolean | `false` | Hide directories with no matching files |
 
-**Returns**:  
-`void`
+#### `getTableOfContents(options)`
+
+Same options as above, plus:
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `useGitTracking` | boolean | auto | Override git detection. `false` forces filesystem traversal. |
+
+Returns: `string`
+
+## Attribution
+
+This project is a fork of [repo-toc](https://github.com/kmtusher97/repo-toc) by [@kmtusher97](https://github.com/kmtusher97), originally published under the ISC license. See [LICENSE](./LICENSE) for details.
 
 ## Contributing
 
-We welcome contributions! If you'd like to report issues, request features, or submit pull requests, please visit our [GitHub repository](https://github.com/kmtusher97/repo-toc).
-
-### Automated Publishing
-
-This package uses automated publishing to NPM:
-- **Automatic**: New versions are published automatically when changes are merged to the main branch
-- **Version Bumping**: Semantic versioning based on conventional commit messages
-- **Release Notes**: GitHub releases are created automatically with each publish
-
-For setup details, see [Release Setup Guide](.github/RELEASE_SETUP.md).
+Issues and pull requests welcome at [github.com/WGriffing/ya-repo-toc](https://github.com/WGriffing/ya-repo-toc).
 
 ## License
 
-This package is licensed under the [ISC License](https://opensource.org/licenses/ISC).
-
----
-
-Feel free to customize this further based on additional features or specific instructions.
+[ISC](./LICENSE)
