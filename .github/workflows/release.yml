@@ -29,7 +29,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
@@ -66,9 +66,23 @@ jobs:
       - name: Bump version
         id: version
         run: |
+          CURRENT_VERSION="v$(node -p "require('./package.json').version")"
           VERSION_TYPE="${{ steps.version-type.outputs.version_type }}"
-          NEW_VERSION=$(npm version $VERSION_TYPE --no-git-tag-version)
+
+          # Check if current version is already published (retry scenario)
+          if npm view "ya-repo-toc@${CURRENT_VERSION#v}" version >/dev/null 2>&1; then
+            # Already published — need a fresh bump
+            NEW_VERSION=$(npm version $VERSION_TYPE --no-git-tag-version)
+          elif git tag -l "$CURRENT_VERSION" | grep -q .; then
+            # Tagged but not published — use the existing version
+            NEW_VERSION="$CURRENT_VERSION"
+          else
+            # Normal case — bump
+            NEW_VERSION=$(npm version $VERSION_TYPE --no-git-tag-version)
+          fi
+
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing version: $NEW_VERSION"
 
       - name: Update package-lock.json
         run: npm install --package-lock-only
@@ -76,30 +90,41 @@ jobs:
       - name: Commit version bump
         run: |
           git add package.json package-lock.json
-          git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
-          git tag ${{ steps.version.outputs.new_version }}
+          if git diff --cached --quiet; then
+            echo "No changes to commit (version already bumped)"
+          else
+            git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
+          fi
+
+      - name: Tag release
+        run: |
+          if git rev-parse "${{ steps.version.outputs.new_version }}" >/dev/null 2>&1; then
+            echo "Tag ${{ steps.version.outputs.new_version }} already exists"
+          else
+            git tag "${{ steps.version.outputs.new_version }}"
+          fi
 
       - name: Push changes
         run: |
           git push origin main
-          git push origin ${{ steps.version.outputs.new_version }}
+          git push origin "${{ steps.version.outputs.new_version }}"
 
       - name: Publish to NPM
-        run: npm publish --provenance --access public
+        run: |
+          VERSION="${{ steps.version.outputs.new_version }}"
+          if npm view "ya-repo-toc@${VERSION#v}" version >/dev/null 2>&1; then
+            echo "Version ${VERSION} already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
 
       - name: Create GitHub Release
-        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.version.outputs.new_version }}
-          release_name: Release ${{ steps.version.outputs.new_version }}
-          body: |
-            ## Changes in ${{ steps.version.outputs.new_version }}
-
-            Auto-generated release from commits pushed to main branch.
-
-            ### Recent Commits
-            ${{ github.event.head_commit.message }}
-          draft: false
-          prerelease: false
+          TAG: ${{ steps.version.outputs.new_version }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists, skipping"
+          else
+            gh release create "$TAG" --title "Release $TAG" --notes "Auto-generated release from commits pushed to main branch."
+          fi
