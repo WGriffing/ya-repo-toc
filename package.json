@@ -1,6 +1,6 @@
 {
   "name": "ya-repo-toc",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Generate a markdown Table of Contents for your GitHub repository. Uses git-native file discovery, supports nested .gitignore, and prunes empty directories.",
   "main": "index.js",
   "scripts": {
